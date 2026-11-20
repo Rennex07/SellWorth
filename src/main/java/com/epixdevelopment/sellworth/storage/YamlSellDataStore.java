@@ -7,14 +7,17 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 public final class YamlSellDataStore implements SellDataStore {
+    private static final Pattern LEGACY_UUID_ENTRY = Pattern.compile(
+            "(?m)^([ \\t]*- )!!java\\.util\\.UUID ('[0-9a-fA-F-]{36}')[ \\t]*$");
     private final Sell plugin;
     private final File file;
     private FileConfiguration config;
@@ -34,7 +37,11 @@ public final class YamlSellDataStore implements SellDataStore {
                 throw new IOException("Could not create databases.yml: " + e.getMessage(), e);
             }
         }
-        this.config = YamlConfiguration.loadConfiguration(file);
+        // Older full saves tagged toggle UUIDs as Java objects. Read them as strings.
+        String contents = LEGACY_UUID_ENTRY.matcher(Files.readString(file.toPath())).replaceAll("$1$2");
+        YamlConfiguration loaded = new YamlConfiguration();
+        loaded.loadFromString(contents);
+        this.config = loaded;
     }
 
     @Override
@@ -135,8 +142,7 @@ public final class YamlSellDataStore implements SellDataStore {
             }
         }
 
-        config.set("toggleworth-disabled", new ArrayList<>(toggleWorthDisabled));
-        config.save(file);
+        saveToggleWorth(toggleWorthDisabled);
     }
 
     @Override
