@@ -93,7 +93,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-public final class Sell extends JavaPlugin implements Listener {
+public class Sell extends JavaPlugin implements Listener {
    public static final String RESET = "\u001B[0m";
    public static final String RED = "\u001B[31m";
    public static final String GREEN = "\u001B[32m";
@@ -802,12 +802,9 @@ public final class Sell extends JavaPlugin implements Listener {
    
    public void reloadPlugin() {
       try {
-         configManager.reloadConfig();
-         reloadConfig(); // Reload Bukkit's config
-         
-         setupSaveFile();
-         loadHistory();
-         buildCategoryItems(); // Rebuild category items
+         reloadConfig();
+         // Keep live progress and its storage backend active across configuration reloads.
+         buildCategoryItems();
          
          if (packetListener != null) {
             packetListener.loadConfigData();
@@ -828,7 +825,7 @@ public final class Sell extends JavaPlugin implements Listener {
          sellHistoryGui = new SellHistoryGui(this);
          itemPricesMenu = new ItemPricesMenu(this); // Rebuild item prices menu
          
-         getLogger().info("Configuration and data reloaded successfully!");
+         getLogger().info("Configuration reloaded successfully!");
       } catch (Exception e) {
          getLogger().severe("Failed to reload plugin: " + e.getMessage());
          e.printStackTrace();
@@ -836,14 +833,6 @@ public final class Sell extends JavaPlugin implements Listener {
    }
 
    private void setupSaveFile() {
-      if (this.dataStore != null) {
-         try {
-            this.dataStore.close();
-         } catch (Exception ignored) {
-         }
-         this.dataStore = null;
-      }
-
       String typeRaw = this.getConfig().getString("storage.type", "yaml");
       String type = typeRaw == null ? "yaml" : typeRaw.trim().toLowerCase(Locale.ROOT);
 
@@ -927,16 +916,15 @@ public final class Sell extends JavaPlugin implements Listener {
    }
 
    private void saveToggleWorthToSave() {
-      if (this.dataStore == null) {
+      SellDataStore store = this.dataStore;
+      if (store == null) {
          getLogger().warning("Cannot save toggle worth: data store not initialized");
          return;
       }
       Set<UUID> snapshot = new HashSet<>(this.toggleWorthDisabled);
       submitStorageTask(() -> {
          try {
-            if (this.dataStore != null) {
-               this.dataStore.saveToggleWorth(snapshot);
-            }
+            store.saveToggleWorth(snapshot);
          } catch (Exception e) {
             getLogger().severe("Could not save toggle worth: " + e.getMessage());
             e.printStackTrace();

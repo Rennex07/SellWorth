@@ -43,6 +43,7 @@ public class ConfigManager {
 
         defaultConfig = """
 # Settings
+# Storage settings are applied when the plugin starts.
 storage:
   type: yaml # yaml, sqlite, mysql
   migrate-from-yaml: true

@@ -106,7 +106,10 @@ public class SellCommand implements CommandExecutor, TabCompleter {
                   while(it.hasNext()) {
                      Map<String, Object> m = it.next();
                      if (m.containsKey(entryKey)) {
-                        it.remove();
+                        m.remove(entryKey);
+                        if (m.isEmpty()) {
+                           it.remove();
+                        }
                         removed = true;
                      }
                   }
